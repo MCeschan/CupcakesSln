@@ -1,56 +1,52 @@
-using CupcakesSln.Data;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using CupcakesSln.Data;
+using CupcakesSln.Repositories;
 
 namespace CupcakesSln
 {
+
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
 
-        public IConfiguration Configuration { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<CupcakeContext>(options => options.UseSqlServer(Configuration.GetConnectionString("KeyDB")));
+            
+            services.AddTransient<ICupcakeRepository, CupcakeRepository>();
+            services.AddDbContext<CupcakeContext>(options =>
+                  options.UseSqlServer(_configuration.GetConnectionString("KeyDB")));
 
-            services.AddControllersWithViews();
+            services.AddMvc();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        private IConfiguration _configuration;
+        public Startup(IConfiguration configuration)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseExceptionHandler("/Home/Error");
-            }
+            _configuration = configuration;
+        }
+
+        public void Configure(IApplicationBuilder app, CupcakeContext cupcakeContext)
+        {
+            //cupcakeContext.Database.EnsureDeleted();
+            //cupcakeContext.Database.EnsureCreated();
+
             app.UseStaticFiles();
 
-            app.UseRouting();
-
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
+            app.UseMvc(routes =>
             {
-                endpoints.MapControllerRoute(
-                    name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                _ = routes.MapRoute(
+                    name: "CupcakeRoute",
+                    template: "{controller}/{action}/{id?}",
+                    defaults: new { controller = "Cupcake", action = "Index" },
+                    constraints: new { id = "[0-9]+" });
             });
         }
     }
